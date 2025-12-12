@@ -16,7 +16,12 @@
 #define SCREEN_WIDTH 128 // CH1116 128x64 resolution
 #define SCREEN_HEIGHT 64
 #define CH1116_I2C_ADDR 0x3C // Default I2C address (try 0x3D if not working)
-#define CH1116_RST 4         // Reset pin (set to -1 if not connected)
+#define CH1116_RST -1        // Reset pin (set to -1 if not connected)
+
+// ------------------- I2C Configuration -------------------
+#define I2C_SDA_PIN GPIO_NUM_20 // I2C SDA -> GPIO19 (Custom pin)
+#define I2C_SCL_PIN GPIO_NUM_19 // I2C SCL -> GPIO20 (Custom pin)
+#define I2C_FREQUENCY 400000    // 400kHz I2C frequency
 
 // Color definitions for monochrome OLED
 #define BLACK 0
@@ -67,16 +72,16 @@ public:
   // Initialize CH1116 (critical: specific initialization sequence)
   bool begin()
   {
-    // Initialize I2C (400kHz max for CH1116)
-    Wire.begin();
-    Wire.setClock(400000);
+    // Initialize I2C with explicit pins
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.setClock(I2C_FREQUENCY);
 
     // Reset OLED
     reset();
 
     // ------------------- CH1116 Core Initialization Commands -------------------
     sendCommand(0xAE); // Turn off display (sleep mode)
-    sendCommand(0x00); // Set column address low nibble (0x00)
+    sendCommand(0x02); // Set column address low nibble (0x02) - Shift right by 2 columns
     sendCommand(0x10); // Set column address high nibble (0x10)
     sendCommand(0x40); // Set display start line (0x40 = line 0)
     sendCommand(0x81); // Set contrast control
@@ -119,8 +124,8 @@ public:
     for (uint8_t page = 0; page < 8; page++)
     {                           // 8 pages (64 rows / 8)
       sendCommand(0xB0 + page); // Set page address (0xB0~0xB7)
-      sendCommand(0x00);        // Column low nibble
-      sendCommand(0x10);        // Column high nibble
+      sendCommand(0x02);        // Column low nibble (0x02) - Shift right by 2 columns
+      sendCommand(0x10);        // Column high nibble (0x10)
 
       // Write 128 bytes for the page (I2C data batch)
       Wire.beginTransmission(_i2cAddr);
