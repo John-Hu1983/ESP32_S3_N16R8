@@ -1,0 +1,9 @@
+wiki :	https://ai.feishu.cn/wiki/F5krwD16viZoF0kKkvDcrZNYnhb
+
+1. 默认的编译芯片是ESP32的，所以自己的板子是S3的话一定要输入以下命令把芯片设置为S3
+ idf.py set-target esp32s3
+ 
+2. 更换编译板子类型
+默认编译出的固件是面包板的，如果需要更换板子，需要输入idf.py menuconfig
+[Image]
+进入Xiaozhi Assistant选项

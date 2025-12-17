@@ -1,0 +1,4 @@
+dependencies:
+  bmi270:
+    version: '*'
+  idf: '>=5.0'
