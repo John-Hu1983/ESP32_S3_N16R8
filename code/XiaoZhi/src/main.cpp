@@ -14,15 +14,21 @@ int16_t waveBuffer[SCREEN_WIDTH] = {0};
 int waveIndex = 0;
 
 // Test mode selection
-enum TestMode { TONE_TEST, LOOPBACK_TEST };
+enum TestMode
+{
+  TONE_TEST,
+  LOOPBACK_TEST
+};
 TestMode currentMode = TONE_TEST;
 
 // ------------------- Generate Test Tone -------------------
-void generateTestTone(int16_t* buffer, size_t length, uint16_t frequency = 440, float volume = 0.5) {
+void generateTestTone(int16_t *buffer, size_t length, uint16_t frequency = 440, float volume = 0.5)
+{
   const float sampleRate = 44100.0;
   const float amplitude = 32767.0 * volume;
-  
-  for (size_t i = 0; i < length; i++) {
+
+  for (size_t i = 0; i < length; i++)
+  {
     float t = i / sampleRate;
     float sineWave = sin(2 * PI * frequency * t);
     buffer[i] = (int16_t)(sineWave * amplitude);
@@ -30,7 +36,8 @@ void generateTestTone(int16_t* buffer, size_t length, uint16_t frequency = 440, 
 }
 
 // ------------------- Update OLED with Audio Data -------------------
-void update_oled(int16_t avg_amp, int16_t max_amp, int16_t sample) {
+void update_oled(int16_t avg_amp, int16_t max_amp, int16_t sample)
+{
   display.clearDisplay(); // Clear buffer
 
   // ------------------- Text Display (Top Section) -------------------
@@ -39,9 +46,12 @@ void update_oled(int16_t avg_amp, int16_t max_amp, int16_t sample) {
 
   // Line 1: Test Mode
   display.setCursor(0, 0);
-  if (currentMode == TONE_TEST) {
+  if (currentMode == TONE_TEST)
+  {
     display.print(F("Mode: Test Tone"));
-  } else {
+  }
+  else
+  {
     display.print(F("Mode: Loopback"));
   }
 
@@ -68,7 +78,8 @@ void update_oled(int16_t avg_amp, int16_t max_amp, int16_t sample) {
 
   // Draw vertical lines for sound wave (base Y = 48)
   int waveY = 48;
-  for (int x = 0; x < SCREEN_WIDTH; x++) {
+  for (int x = 0; x < SCREEN_WIDTH; x++)
+  {
     int currentAmp = waveBuffer[x];
     display.drawLine(x, waveY - currentAmp, x, waveY + currentAmp, WHITE);
   }
@@ -77,17 +88,21 @@ void update_oled(int16_t avg_amp, int16_t max_amp, int16_t sample) {
 }
 
 // ------------------- Setup (Initialize Hardware) -------------------
-void setup() {
+void setup()
+{
   // Initialize Serial (115200 baud rate)
   Serial.begin(115200);
-  while (!Serial) {
+  while (!Serial)
+  {
     delay(10); // Wait for Serial Monitor to connect
   }
 
   // Initialize CH1116 OLED
-  if (!display.begin()) {
+  if (!display.begin())
+  {
     Serial.println(F("CH1116 OLED Initialization Failed!"));
-    for (;;); // Halt program if OLED fails
+    for (;;)
+      ; // Halt program if OLED fails
   }
 
   // Show initial message on OLED
@@ -105,9 +120,11 @@ void setup() {
   Serial.println("\nMAX98357 Audio Amplifier Test");
   Serial.printf("I2S Pins: BCLK=%d, LRC=%d, DATA=%d\n", MAX98357_BCLK_PIN, MAX98357_LRC_PIN, MAX98357_DATA_PIN);
 
-  if (!amplifier.begin()) {
+  if (!amplifier.begin())
+  {
     Serial.println(F("MAX98357 Initialization Failed!"));
-    for (;;); // Halt program if MAX98357 fails
+    for (;;)
+      ; // Halt program if MAX98357 fails
   }
   Serial.println("MAX98357 I2S Initialized.");
 
@@ -116,9 +133,11 @@ void setup() {
   Serial.printf("I2S Pins: WS=%d, SCK=%d, SD=%d\n", I2S_WS_PIN, I2S_SCK_PIN, I2S_SD_PIN);
   Serial.println("⚠️  INMP441 L/R pin must be connected to GND (Left Channel)! ");
 
-  if (!microphone.begin()) {
+  if (!microphone.begin())
+  {
     Serial.println(F("INMP441 Initialization Failed!"));
-    for (;;); // Halt program if INMP441 fails
+    for (;;)
+      ; // Halt program if INMP441 fails
   }
   Serial.println("INMP441 I2S Initialized.");
 
@@ -128,9 +147,11 @@ void setup() {
 }
 
 // ------------------- Main Loop (Audio Test) -------------------
-void loop() {
+void loop()
+{
   // Check for serial input to toggle test modes
-  if (Serial.available() > 0) {
+  if (Serial.available() > 0)
+  {
     Serial.read(); // Clear the input buffer
     currentMode = (currentMode == TONE_TEST) ? LOOPBACK_TEST : TONE_TEST;
     Serial.print(F("\nSwitched to "));
@@ -141,19 +162,21 @@ void loop() {
   int32_t audio_buffer[BUFFER_SIZE / 4];
   int16_t processed_samples[BUFFER_SIZE / 4];
 
-  if (currentMode == TONE_TEST) {
+  if (currentMode == TONE_TEST)
+  {
     // Generate a 440Hz test tone (A4 note)
     generateTestTone(processed_samples, BUFFER_SIZE / 4, 440, 0.3);
-    
+
     // Play the test tone through the amplifier
     amplifier.writeAudioDataWithVolume(processed_samples, BUFFER_SIZE / 4, 0.5);
-    
+
     // Update OLED with tone information
     update_oled(16384, 32767, processed_samples[0]);
-  } 
-  else {
+  }
+  else
+  {
     // LOOPBACK_TEST mode: Microphone input to amplifier output
-    
+
     // Prepare audio data structure
     AudioData audioData;
     audioData.rawBuffer = audio_buffer;
@@ -162,7 +185,8 @@ void loop() {
     // Read I2S data (non-blocking, timeout = 100ms)
     esp_err_t err = microphone.readAudioData(audioData, sizeof(audio_buffer), 100 / portTICK_PERIOD_MS);
 
-    if (err == ESP_OK && audioData.samplesRead > 0) {
+    if (err == ESP_OK && audioData.samplesRead > 0)
+    {
       // Process audio data
       microphone.processAudioData(audioData);
 
@@ -175,7 +199,8 @@ void loop() {
       // Update OLED with audio data
       update_oled(audioData.averageAmplitude, audioData.maxAmplitude, audioData.latestSample);
     }
-    else if (err == ESP_ERR_TIMEOUT) {
+    else if (err == ESP_ERR_TIMEOUT)
+    {
       // Timeout error: show on OLED and Serial
       Serial.println("Error: Audio Read Timeout!");
       display.clearDisplay();
@@ -183,7 +208,8 @@ void loop() {
       display.print(F("Error: Timeout!"));
       display.display();
     }
-    else {
+    else
+    {
       // Other errors: show code
       Serial.printf("Error: Audio Read Failed (Code: %d)\n", err);
       display.clearDisplay();
